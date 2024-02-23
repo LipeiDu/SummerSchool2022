@@ -8,7 +8,7 @@
 
 from __future__ import print_function
 
-import pyhepmc_ng
+import pyhepmc
 
 # Base class
 from event import event_base
@@ -45,8 +45,8 @@ class EventAscii(event_base.EventBase):
             py = particle[5]
             pz = particle[6]
 
-            four_vector = pyhepmc_ng.FourVector(px, py, pz, e)
-            particle = pyhepmc_ng.GenParticle(four_vector, pid, status)
+            four_vector = pyhepmc.FourVector(px, py, pz, e)
+            particle = pyhepmc.GenParticle(four_vector, pid, status)
         
             pt = particle.momentum.pt()
             if pid != 12 and pid != 14 and pid != 16: # Remove neutrinos

@@ -135,6 +135,7 @@ dmypy.json
 Aug03_BulkBayes/DataFiles*
 Aug03_BulkBayes/Results
 Aug03_BulkBayes/*.tar.gz
+Jul29_Jets/data/*
 JETSCAPE/
 STAT/
 .config/

@@ -54,6 +54,7 @@ def analyze_event(event, event_id=1):
 
   # tag to create new output file
   new_file = False
+  new_photon_file = False
 
   # Get Hadron List for a Event
   hadrons = event.hadrons(min_track_pt=minTrackPt)
@@ -70,6 +71,7 @@ def analyze_event(event, event_id=1):
     print('jet selector is:', jet_selector, '\n')
     # Create new output file for the first event
     new_file = True
+    new_photon_file = True
 
   # Do jet finding
   cs = fj.ClusterSequence(fj_hadrons, jet_def)
@@ -84,13 +86,18 @@ def analyze_event(event, event_id=1):
     jet = hole_subtraction(jet,holes_in_jet)
     if jet.perp() > jetPtMin:
       charged_in_jet = fill_associated_particles(jet, hadrons, select_status=None, select_charged=True)
-      new_file = write_output(jet, charged_in_jet, new_file)
+      new_file = write_charged_output(jet, charged_in_jet, new_file)
+
+      # NOTE: here I only save photons for events with jets
+      # Fill associated photons and write output
+      photons_in_jet_event = [hadron for hadron in hadrons if is_photon(hadron)]
+      new_photon_file = write_photon_output(jet, photons_in_jet_event, new_photon_file)
 
 
 # ---------------------------------------------------------------
 # Write Output File
 # ---------------------------------------------------------------
-def write_output(jet, associated, new_file = False):
+def write_charged_output(jet, associated, new_file = False):
 
   # Data for reconstructed jet
   jet_status = 10
@@ -102,7 +109,7 @@ def write_output(jet, associated, new_file = False):
     px = assoc.momentum.px
     py = assoc.momentum.py
     pz = assoc.momentum.pz
-    e = assoc.momentum.e
+    e  = assoc.momentum.e
     pj = fj.PseudoJet(px, py, pz, e)
       
     output = [i+1, pj.perp(), pj.eta(), pj.phi(), assoc.status, assoc.pid ]
@@ -113,6 +120,39 @@ def write_output(jet, associated, new_file = False):
   if new_file == True:
     mode = 'w'
   f = open(output_file_jets, mode, newline='')
+  writer = csv.writer(f)
+  writer.writerows(output_list)
+  f.close()
+
+  # Not to create new output file
+  return False
+
+def write_photon_output(jet, photons, new_photon_file = False):
+
+  # Data for reconstructed jet
+  jet_status = 10
+  jet_pid = 10
+  output_list = [[0, jet.perp(), jet.eta(), jet.phi(), jet_status, jet_pid]]
+
+  # Data for associated photons
+  for i, photon in enumerate(photons):
+      px = photon.momentum.px
+      py = photon.momentum.py
+      pz = photon.momentum.pz
+      e  = photon.momentum.e
+      pj = fj.PseudoJet(px, py, pz, e)
+
+      output = [i + 1, pj.perp(), pj.eta(), pj.phi(), photon.status, photon.pid]
+      output_list.append(output)
+
+  # Write Data to a separate file for photons
+  output_file_jets_without_extension = output_file_jets[:-4]
+  output_file_photons = output_file_jets_without_extension + '_photons.dat'
+
+  mode = 'a'
+  if new_photon_file == True:
+    mode = 'w'
+  f = open(output_file_photons, mode, newline='')
   writer = csv.writer(f)
   writer.writerows(output_list)
   f.close()
@@ -189,8 +229,11 @@ def fill_associated_particles(jet, hadrons, select_status=None, select_charged=F
 # ---------------------------------------------------------------
 def fill_fastjet_constituents(hadrons):
 
-  # Create particle list (without holes)
-  particles = list(filter(is_a_particle, hadrons))
+  # # Create particle list (without holes)
+  # particles = list(filter(is_a_particle, hadrons))
+
+  # exclude the photons
+  particles = list(filter(is_charged, hadrons))
 
   px = [particle.momentum.px for particle in particles]
   py = [particle.momentum.py for particle in particles]
@@ -231,7 +274,15 @@ def is_charged (hadron):
   else:
     return False
 
-
+# ---------------------------------------------------------------
+# Find photons
+# ---------------------------------------------------------------
+def is_photon (hadron):
+  pid = hadron.pid
+  if abs(pid) in [22]:
+    return True
+  else:
+    return False
 
 # ---------------------------------------------------------------
 if __name__ == "__main__":
